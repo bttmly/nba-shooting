@@ -63,10 +63,6 @@ function computeBinMetadata (shots) {
   return { count, made, percentage, value, expectedValue };
 }
 
-function ev (shots) {
-  
-}
-
 module.exports = function draw (shots) {
   const [bins, hexbin] = createHexbins(shots);
   const binMetadata = bins.map(computeBinMetadata).filter(m => m.count > THRESHOLD);
