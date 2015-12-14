@@ -1,13 +1,14 @@
 {
-  "name": "shooting",
-  "version": "1.0.0",
+  "name": "nba-shooting",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "server/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server/app.js",
+    "update-shots": "node -e \"require('./scripts/update-shots')()\""
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Nick Bottomley (github.com/nickb1080)",
+  "license": "MIT",
   "dependencies": {
     "babel": "^6.3.13",
     "babel-cli": "^6.3.17",
@@ -17,14 +18,18 @@
     "babel-preset-react": "^6.3.13",
     "babel-preset-stage-0": "^6.3.13",
     "babel-register": "^6.3.13",
+    "body-parser": "^1.14.1",
     "browserify": "^12.0.1",
+    "cookie-parser": "^1.4.0",
     "d3": "^3.5.10",
     "eslint": "^1.10.3",
     "express": "^4.13.3",
+    "morgan": "^1.6.1",
     "nba": "^1.2.0",
     "ndjson": "^1.4.3",
     "rainbowvis.js": "^1.0.1",
     "ramda": "^0.18.0",
-    "through2": "^2.0.0"
+    "through2": "^2.0.0",
+    "babelify": "^7.2.0"
   }
 }

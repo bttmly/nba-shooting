@@ -8,8 +8,9 @@ function panic (err) {
   setTimeout(function () { throw err; });
 }
 
-var JSON_FILE = path.join(__dirname, "../data/shots.json");
-var ND_JSON_FILE = path.join(__dirname, "../data/shots.ndjson");
+var DATA_DIR = path.join(__dirname, "../data");
+var JSON_FILE = path.join(DATA_DIR, "shots.json");
+var ND_JSON_FILE = path.join(DATA_DIR, "shots.ndjson");
 
 var teams = nba.teams
 
@@ -22,6 +23,7 @@ function attempt (f) {
 
 function leagueShots () {
 
+  attempt(fs.mkdirSync, DATA_DIR);
   attempt(fs.unlinkSync, JSON_FILE);
   attempt(fs.unlinkSync, ND_JSON_FILE); 
 
@@ -31,7 +33,7 @@ function leagueShots () {
     nba.stats.shots
   );
 
-  Promise.all(R.map(teamToShots, teams))
+  return Promise.all(R.map(teamToShots, teams))
     .then(R.pluck("shot_Chart_Detail"))
     .then(R.flatten)
     .then(function (data) {
@@ -42,4 +44,4 @@ function leagueShots () {
     .catch(panic);
 }
 
-leagueShots()
+module.exports = leagueShots;

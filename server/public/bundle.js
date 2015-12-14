@@ -1,269 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-"use strict";
-
-var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; })();
-
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-var R = require("ramda");
-
-var Rainbow = require("rainbowvis.js");
-var d3 = require("d3");
-require("./hexbin")(d3);
-
-var HEX_RADIUS = 23; // trial and error
-var SPECTRUM = ["#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c"];
-var THRESHOLD = 30;
-var WIDTH = 1000;
-var HEIGHT = 940;
-
-function range(arr) {
-  var min = Number.POSITIVE_INFINITY;
-  var max = Number.NEGATIVE_INFINITY;
-  var len = arr.length;
-  var i = 0;
-  var e;
-
-  for (; i < len; i++) {
-    e = arr[i];
-    if (e < min) min = e;
-    if (e > max) max = e;
-  }
-
-  return [min, max];
-}
-
-function createHexbins(shots) {
-  shots = shots.map(makeShot);
-
-  var xRange = range(R.pluck("x", shots));
-  var yRange = range(R.pluck("y", shots));
-
-  var xScale = d3.scale.linear().domain(xRange).range([0, WIDTH]);
-
-  var yScale = d3.scale.linear().domain(yRange).range([0, HEIGHT * 2]);
-
-  var hexbin = d3.hexbin().size([WIDTH, HEIGHT]).radius(HEX_RADIUS).x(R.prop("scaledX")).y(R.prop("scaledY"));
-
-  var scaledShots = shots.map(function (s) {
-    return _extends({}, s, { scaledX: xScale(s.x), scaledY: yScale(s.y) });
-  });
-
-  var bins = hexbin(scaledShots);
-  return [bins, hexbin];
-}
-
-function computeBinMetadata(shots) {
-  var count = shots.length;
-  var made = shots.filter(R.prop("made")).length;
-  var value = Number(shots[0].value);
-  var percentage = made / count;
-  if (percentage === Infinity) percentage = 0;
-  var expectedValue = value * percentage;
-  return { count: count, made: made, percentage: percentage, value: value, expectedValue: expectedValue };
-}
-
-function ev(shots) {}
-
-module.exports = function draw(shots) {
-  var _createHexbins = createHexbins(shots);
-
-  var _createHexbins2 = _slicedToArray(_createHexbins, 2);
-
-  var bins = _createHexbins2[0];
-  var hexbin = _createHexbins2[1];
-
-  var binMetadata = bins.map(computeBinMetadata).filter(function (m) {
-    return m.count > THRESHOLD;
-  });
-
-  var expectedValueRange = range(R.pluck("expectedValue", binMetadata));
-  var countRange = range(R.pluck("count", binMetadata));
-
-  var rainbow = new Rainbow();
-  rainbow.setSpectrum.apply(rainbow, SPECTRUM);
-  rainbow.setNumberRange.apply(rainbow, _toConsumableArray(expectedValueRange));
-
-  var sizeScale = d3.scale.log().domain([THRESHOLD, countRange[1]]).range([0, 1]);
-
-  var svg = d3.select("body").append("svg").attr("width", WIDTH).attr("height", HEIGHT);
-
-  var hexes = svg.append("g").attr("class", "hexagons").selectAll("path").data(bins).enter().append("path").attr("d", hexbin.hexagon(HEX_RADIUS - 0.5)).attr("transform", function (d) {
-    var scale = sizeScale(d.length);
-    return "translate(" + d.x + ", " + d.y + ") scale(" + scale + ", " + scale + ")";
-  }).attr("visibility", function (d) {
-    return d.length < THRESHOLD ? "hidden" : "visibile";
-  }).style("fill", function (d) {
-    return rainbow.colourAt(binPct(d) * d[0].value);
-  }).attr("data-percent", function (d) {
-    return binPct(d);
-  }).attr("data-attempts", function (d) {
-    return d.length;
-  }).attr("data-value", function (d) {
-    return d[0].v;
-  });
-};
-
-function binPct(bin) {
-  return bin.filter(R.prop("made")).length / bin.length;
-}
-
-function makeShot(raw) {
-  return {
-    gameId: raw.gameId,
-    playerId: raw.playerId,
-    teamId: raw.teamId,
-    period: raw.period,
-    distance: raw.shotDistance,
-    made: !!raw.shotMadeFlag,
-    value: Number(raw.shotType[0]),
-    minutes: raw.minutesRemaining,
-    seconds: raw.secondsRemaining,
-    x: raw.locX,
-    y: raw.locY
-  };
-}
-},{"./hexbin":2,"d3":4,"rainbowvis.js":5,"ramda":6}],2:[function(require,module,exports){
-"use strict";
-
-// https://github.com/d3/d3-plugins/blob/master/hexbin/hexbin.js
-module.exports = function (d3) {
-
-  d3.hexbin = function () {
-    var width = 1,
-        height = 1,
-        r,
-        x = d3_hexbinX,
-        y = d3_hexbinY,
-        dx,
-        dy;
-
-    function hexbin(points) {
-      var binsById = {};
-
-      points.forEach(function (point, i) {
-        var py = y.call(hexbin, point, i) / dy,
-            pj = Math.round(py),
-            px = x.call(hexbin, point, i) / dx - (pj & 1 ? .5 : 0),
-            pi = Math.round(px),
-            py1 = py - pj;
-
-        if (Math.abs(py1) * 3 > 1) {
-          var px1 = px - pi,
-              pi2 = pi + (px < pi ? -1 : 1) / 2,
-              pj2 = pj + (py < pj ? -1 : 1),
-              px2 = px - pi2,
-              py2 = py - pj2;
-          if (px1 * px1 + py1 * py1 > px2 * px2 + py2 * py2) pi = pi2 + (pj & 1 ? 1 : -1) / 2, pj = pj2;
-        }
-
-        var id = pi + "-" + pj,
-            bin = binsById[id];
-        if (bin) bin.push(point);else {
-          bin = binsById[id] = [point];
-          bin.i = pi;
-          bin.j = pj;
-          bin.x = (pi + (pj & 1 ? 1 / 2 : 0)) * dx;
-          bin.y = pj * dy;
-        }
-      });
-
-      return d3.values(binsById);
-    }
-
-    function hexagon(radius) {
-      var x0 = 0,
-          y0 = 0;
-      return d3_hexbinAngles.map(function (angle) {
-        var x1 = Math.sin(angle) * radius,
-            y1 = -Math.cos(angle) * radius,
-            dx = x1 - x0,
-            dy = y1 - y0;
-        x0 = x1, y0 = y1;
-        return [dx, dy];
-      });
-    }
-
-    hexbin.x = function (_) {
-      if (!arguments.length) return x;
-      x = _;
-      return hexbin;
-    };
-
-    hexbin.y = function (_) {
-      if (!arguments.length) return y;
-      y = _;
-      return hexbin;
-    };
-
-    hexbin.hexagon = function (radius) {
-      if (arguments.length < 1) radius = r;
-      return "m" + hexagon(radius).join("l") + "z";
-    };
-
-    hexbin.centers = function () {
-      var centers = [];
-      for (var y = 0, odd = false, j = 0; y < height + r; y += dy, odd = !odd, ++j) {
-        for (var x = odd ? dx / 2 : 0, i = 0; x < width + dx / 2; x += dx, ++i) {
-          var center = [x, y];
-          center.i = i;
-          center.j = j;
-          centers.push(center);
-        }
-      }
-      return centers;
-    };
-
-    hexbin.mesh = function () {
-      var fragment = hexagon(r).slice(0, 4).join("l");
-      return hexbin.centers().map(function (p) {
-        return "M" + p + "m" + fragment;
-      }).join("");
-    };
-
-    hexbin.size = function (_) {
-      if (!arguments.length) return [width, height];
-      width = +_[0], height = +_[1];
-      return hexbin;
-    };
-
-    hexbin.radius = function (_) {
-      if (!arguments.length) return r;
-      r = +_;
-      dx = r * 2 * Math.sin(Math.PI / 3);
-      dy = r * 1.5;
-      return hexbin;
-    };
-
-    return hexbin.radius(1);
-  };
-
-  var d3_hexbinAngles = d3.range(0, 2 * Math.PI, Math.PI / 3),
-      d3_hexbinX = function d3_hexbinX(d) {
-    return d[0];
-  },
-      d3_hexbinY = function d3_hexbinY(d) {
-    return d[1];
-  };
-};
-},{}],3:[function(require,module,exports){
-"use strict";
-
-var draw = require("./draw");
-
-var app = {};
-
-fetch("/data/shots.json").then(function (resp) {
-  return resp.json();
-}).then(draw).catch(function (err) {
-  console.error("ERROR IN PROMISE:", err);
-  setTimeout(function () {
-    throw err;
-  });
-});
-},{"./draw":1}],4:[function(require,module,exports){
 !function() {
   var d3 = {
     version: "3.5.10"
@@ -9814,7 +9549,7 @@ fetch("/data/shots.json").then(function (resp) {
   });
   if (typeof define === "function" && define.amd) this.d3 = d3, define(d3); else if (typeof module === "object" && module.exports) module.exports = d3; else this.d3 = d3;
 }();
-},{}],5:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 /*
 RainbowVis-JS 
 Released under Eclipse Public License - v 1.0
@@ -10124,7 +9859,7 @@ if (typeof module !== 'undefined') {
   module.exports = Rainbow;
 }
 
-},{}],6:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 //  Ramda v0.18.0
 //  https://github.com/ramda/ramda
 //  (c) 2013-2015 Scott Sauyet, Michael Hurley, and David Chambers
@@ -18068,4 +17803,529 @@ if (typeof module !== 'undefined') {
 
 }.call(this));
 
-},{}]},{},[3]);
+},{}],4:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = computeBinMetadata;
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function computeBinMetadata(shots) {
+  var count = shots.length;
+  var made = shots.filter(_ramda2.default.prop("made")).length;
+  var value = Number(shots[0].value);
+  var percentage = made / count;
+  if (percentage === Infinity) percentage = 0;
+  var expectedValue = value * percentage;
+  return { count: count, made: made, percentage: percentage, value: value, expectedValue: expectedValue };
+}
+
+},{"ramda":3}],5:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var WIDTH = exports.WIDTH = 1000;
+var HEIGHT = exports.HEIGHT = 940;
+var HEX_RADIUS = exports.HEX_RADIUS = 23;
+var THRESHOLD = exports.THRESHOLD = 30;
+var SPECTRUM = exports.SPECTRUM = ["#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c"];
+
+},{}],6:[function(require,module,exports){
+"use strict";
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+var _d = require("d3");
+
+var _d2 = _interopRequireDefault(_d);
+
+var _range = require("./util/range");
+
+var _range2 = _interopRequireDefault(_range);
+
+var _constants = require("./constants");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = _ramda2.default.curry(function createBins(layout, shots) {
+  shots = shots.map(makeShot);
+
+  var xRange = (0, _range2.default)(_ramda2.default.pluck("x", shots));
+  var yRange = (0, _range2.default)(_ramda2.default.pluck("y", shots));
+
+  var xScale = _d2.default.scale.linear().domain(xRange).range([0, _constants.WIDTH]);
+
+  var yScale = _d2.default.scale.linear().domain(yRange).range([0, _constants.HEIGHT * 2]);
+
+  var scaledShots = shots.map(function (s) {
+    return _extends({}, s, { scaledX: xScale(s.x), scaledY: yScale(s.y) });
+  });
+
+  return layout(scaledShots);
+});
+
+function makeShot(raw) {
+  return {
+    gameId: raw.gameId,
+    playerId: raw.playerId,
+    teamId: raw.teamId,
+    period: raw.period,
+    distance: raw.shotDistance,
+    made: !!raw.shotMadeFlag,
+    value: Number(raw.shotType[0]),
+    minutes: raw.minutesRemaining,
+    seconds: raw.secondsRemaining,
+    x: raw.locX,
+    y: raw.locY
+  };
+}
+
+},{"./constants":5,"./util/range":12,"d3":1,"ramda":3}],7:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = createLayout;
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+var _d = require("d3");
+
+var _d2 = _interopRequireDefault(_d);
+
+var _hexbin = require("./hexbin");
+
+var _hexbin2 = _interopRequireDefault(_hexbin);
+
+var _constants = require("./constants");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+(0, _hexbin2.default)(_d2.default);
+
+function createLayout() {
+  return _d2.default.hexbin().size([_constants.WIDTH, _constants.HEIGHT]).radius(_constants.HEX_RADIUS).x(_ramda2.default.prop("scaledX")).y(_ramda2.default.prop("scaledY"));
+}
+
+},{"./constants":5,"./hexbin":10,"d3":1,"ramda":3}],8:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+var _rainbowvis = require("rainbowvis.js");
+
+var _rainbowvis2 = _interopRequireDefault(_rainbowvis);
+
+var _d = require("d3");
+
+var _d2 = _interopRequireDefault(_d);
+
+var _range = require("./util/range");
+
+var _range2 = _interopRequireDefault(_range);
+
+var _computeBinMetadata = require("./compute-bin-metadata");
+
+var _computeBinMetadata2 = _interopRequireDefault(_computeBinMetadata);
+
+var _constants = require("./constants");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+exports.default = _ramda2.default.curry(function drawLeague(layout, bins) {
+  var binMetadata = bins.map(_computeBinMetadata2.default).filter(function (m) {
+    return m.count > _constants.THRESHOLD;
+  });
+
+  var expectedValueRange = (0, _range2.default)(_ramda2.default.pluck("expectedValue", binMetadata));
+  var countRange = (0, _range2.default)(_ramda2.default.pluck("count", binMetadata));
+
+  var rainbow = new _rainbowvis2.default();
+  rainbow.setSpectrum.apply(rainbow, _toConsumableArray(_constants.SPECTRUM));
+  rainbow.setNumberRange.apply(rainbow, _toConsumableArray(expectedValueRange));
+
+  var sizeScale = _d2.default.scale.log().domain([_constants.THRESHOLD, countRange[1]]).range([0, 1]);
+
+  var svg = _d2.default.select("body").append("svg").attr("width", _constants.WIDTH).attr("height", _constants.HEIGHT);
+
+  var hexes = svg.append("g").attr("class", "hexagons").selectAll("path").data(bins).enter().append("path").attr("d", layout.hexagon(_constants.HEX_RADIUS - 0.5)).attr("transform", function (d) {
+    var scale = sizeScale(d.length);
+    return "translate(" + d.x + ", " + d.y + ") scale(" + scale + ", " + scale + ")";
+  }).attr("visibility", function (d) {
+    return d.length < _constants.THRESHOLD ? "hidden" : "visibile";
+  }).style("fill", function (d) {
+    return rainbow.colourAt(binPct(d) * d[0].value);
+  }).attr("data-percent", function (d) {
+    return binPct(d);
+  }).attr("data-attempts", function (d) {
+    return d.length;
+  }).attr("data-value", function (d) {
+    return d[0].v;
+  });
+
+  return svg[0][0];
+});
+
+function binPct(bin) {
+  return bin.filter(_ramda2.default.prop("made")).length / bin.length;
+}
+
+},{"./compute-bin-metadata":4,"./constants":5,"./util/range":12,"d3":1,"rainbowvis.js":2,"ramda":3}],9:[function(require,module,exports){
+(function (global){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+var _rainbowvis = require("rainbowvis.js");
+
+var _rainbowvis2 = _interopRequireDefault(_rainbowvis);
+
+var _d = require("d3");
+
+var _d2 = _interopRequireDefault(_d);
+
+var _range = require("./util/range");
+
+var _range2 = _interopRequireDefault(_range);
+
+var _computeBinMetadata = require("./compute-bin-metadata");
+
+var _computeBinMetadata2 = _interopRequireDefault(_computeBinMetadata);
+
+var _constants = require("./constants");
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function indexBins(bins) {
+  return bins.reduce(function (indexed, bin) {
+    indexed[bin.i + "," + bin.j] = bin;
+    return indexed;
+  }, {});
+}
+
+function attachBinMetadata(bin) {
+  bin.metadata = (0, _computeBinMetadata2.default)(bin);
+  return bin;
+}
+
+exports.default = _ramda2.default.curry(function drawLeague(layout, leagueBins, playerBins) {
+  playerBins.map(attachBinMetadata);
+  var binMetadata = _ramda2.default.pluck("metadata", playerBins); // .filter(m => m.count > THRESHOLD);
+  var indexedLeagueBins = indexBins(leagueBins.map(attachBinMetadata));
+
+  // const expectedValueRange = range(R.pluck("expectedValue", binMetadata));
+  var countRange = (0, _range2.default)(_ramda2.default.pluck("count", binMetadata));
+
+  var rainbow = new _rainbowvis2.default();
+  rainbow.setSpectrum.apply(rainbow, _toConsumableArray(_constants.SPECTRUM));
+  rainbow.setNumberRange(0, 5); // arbitrary
+
+  var misses = [];
+  var hits = 0;
+
+  var sizeScale = _d2.default.scale.log().domain(countRange).range([0, 1]);
+
+  var svg = _d2.default.select("body").append("svg").attr("width", _constants.WIDTH).attr("height", _constants.HEIGHT);
+
+  var hexes = svg.append("g").attr("class", "hexagons").selectAll("path").data(playerBins).enter().append("path").attr("d", layout.hexagon(_constants.HEX_RADIUS - 0.5)).attr("transform", function (d) {
+    var scaled = sizeScale(d.length);
+    return "translate(" + d.x + ", " + d.y + ") scale(" + scaled + ", " + scaled + ")";
+  })
+  // .attr("visibility", d => d.length < THRESHOLD ? "hidden" : "visibile")
+  .style("fill", function (playerBin) {
+
+    // TODO figure out how there can be bins for a player that are missing for league
+
+    var key = playerBin.i + "," + playerBin.j;
+    var leagueBin = indexedLeagueBins[key];
+    var leaguePercentage = undefined;
+    if (leagueBin) {
+      leaguePercentage = leagueBin.metadata.percentage;
+    } else {
+      leaguePercentage = 0;
+      misses.push(key);
+    }
+
+    var playerPercentage = playerBin.metadata.percentage;
+    var color = playerPercentage / leaguePercentage || 0;
+    return rainbow.colourAt(color);
+  }).attr("data-percent", function (d) {
+    return binPct(d);
+  }).attr("data-attempts", function (d) {
+    return d.length;
+  }).attr("data-value", function (d) {
+    return d[0].v;
+  });
+
+  // wtf are these...?
+  // console.log("misses", misses);
+
+  global.misses = misses;
+  global.indexedPlayerBins = indexBins(playerBins);
+  global.indexedLeagueBins = indexedLeagueBins;
+
+  return svg[0][0];
+});
+
+function binPct(bin) {
+  return bin.filter(_ramda2.default.prop("made")).length / bin.length;
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./compute-bin-metadata":4,"./constants":5,"./util/range":12,"d3":1,"rainbowvis.js":2,"ramda":3}],10:[function(require,module,exports){
+"use strict";
+
+// https://github.com/d3/d3-plugins/blob/master/hexbin/hexbin.js
+module.exports = function (d3) {
+
+  d3.hexbin = function () {
+    var width = 1,
+        height = 1,
+        r,
+        x = d3_hexbinX,
+        y = d3_hexbinY,
+        dx,
+        dy;
+
+    function hexbin(points) {
+      var binsById = {};
+
+      points.forEach(function (point, i) {
+        var py = y.call(hexbin, point, i) / dy,
+            pj = Math.round(py),
+            px = x.call(hexbin, point, i) / dx - (pj & 1 ? .5 : 0),
+            pi = Math.round(px),
+            py1 = py - pj;
+
+        if (Math.abs(py1) * 3 > 1) {
+          var px1 = px - pi,
+              pi2 = pi + (px < pi ? -1 : 1) / 2,
+              pj2 = pj + (py < pj ? -1 : 1),
+              px2 = px - pi2,
+              py2 = py - pj2;
+          if (px1 * px1 + py1 * py1 > px2 * px2 + py2 * py2) pi = pi2 + (pj & 1 ? 1 : -1) / 2, pj = pj2;
+        }
+
+        var id = pi + "-" + pj,
+            bin = binsById[id];
+        if (bin) bin.push(point);else {
+          bin = binsById[id] = [point];
+          bin.i = pi;
+          bin.j = pj;
+          bin.x = (pi + (pj & 1 ? 1 / 2 : 0)) * dx;
+          bin.y = pj * dy;
+        }
+      });
+
+      return d3.values(binsById);
+    }
+
+    function hexagon(radius) {
+      var x0 = 0,
+          y0 = 0;
+      return d3_hexbinAngles.map(function (angle) {
+        var x1 = Math.sin(angle) * radius,
+            y1 = -Math.cos(angle) * radius,
+            dx = x1 - x0,
+            dy = y1 - y0;
+        x0 = x1, y0 = y1;
+        return [dx, dy];
+      });
+    }
+
+    hexbin.x = function (_) {
+      if (!arguments.length) return x;
+      x = _;
+      return hexbin;
+    };
+
+    hexbin.y = function (_) {
+      if (!arguments.length) return y;
+      y = _;
+      return hexbin;
+    };
+
+    hexbin.hexagon = function (radius) {
+      if (arguments.length < 1) radius = r;
+      return "m" + hexagon(radius).join("l") + "z";
+    };
+
+    hexbin.centers = function () {
+      var centers = [];
+      for (var y = 0, odd = false, j = 0; y < height + r; y += dy, odd = !odd, ++j) {
+        for (var x = odd ? dx / 2 : 0, i = 0; x < width + dx / 2; x += dx, ++i) {
+          var center = [x, y];
+          center.i = i;
+          center.j = j;
+          centers.push(center);
+        }
+      }
+      return centers;
+    };
+
+    hexbin.mesh = function () {
+      var fragment = hexagon(r).slice(0, 4).join("l");
+      return hexbin.centers().map(function (p) {
+        return "M" + p + "m" + fragment;
+      }).join("");
+    };
+
+    hexbin.size = function (_) {
+      if (!arguments.length) return [width, height];
+      width = +_[0], height = +_[1];
+      return hexbin;
+    };
+
+    hexbin.radius = function (_) {
+      if (!arguments.length) return r;
+      r = +_;
+      dx = r * 2 * Math.sin(Math.PI / 3);
+      dy = r * 1.5;
+      return hexbin;
+    };
+
+    return hexbin.radius(1);
+  };
+
+  var d3_hexbinAngles = d3.range(0, 2 * Math.PI, Math.PI / 3),
+      d3_hexbinX = function d3_hexbinX(d) {
+    return d[0];
+  },
+      d3_hexbinY = function d3_hexbinY(d) {
+    return d[1];
+  };
+};
+
+},{}],11:[function(require,module,exports){
+(function (global){
+"use strict";
+
+var _ramda = require("ramda");
+
+var _ramda2 = _interopRequireDefault(_ramda);
+
+var _createLayout = require("./create-layout");
+
+var _createLayout2 = _interopRequireDefault(_createLayout);
+
+var _createBins = require("./create-bins");
+
+var _createBins2 = _interopRequireDefault(_createBins);
+
+var _drawLeague = require("./draw-league");
+
+var _drawLeague2 = _interopRequireDefault(_drawLeague);
+
+var _drawPlayer = require("./draw-player");
+
+var _drawPlayer2 = _interopRequireDefault(_drawPlayer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var layout = (0, _createLayout2.default)();
+
+var binCache = {};
+var cacheBins = _ramda2.default.curry(function cacheBins(key, bins) {
+  binCache[key] = bins;
+  return bins;
+});
+
+var svg = undefined;
+
+function disposeSvg() {
+  if (svg == null) return;
+  svg.parentElement.removeChild(svg);
+  svg = null;
+}
+
+function attachSvg(_svg) {
+  svg = _svg;
+}
+
+disposeSvg();
+fetch("/shots").then(function (resp) {
+  return resp.json();
+}).then((0, _createBins2.default)(layout)).then(cacheBins("@@LEAGUE")).then((0, _drawLeague2.default)(layout)).then(attachSvg);
+
+function setupButtonHandler() {
+
+  var button = document.getElementById("submit-btn");
+  var input = document.getElementById("player-id");
+
+  button.addEventListener("click", function () {
+    disposeSvg();
+    var id = input.value;
+    fetch("/shots/" + id).then(function (resp) {
+      return resp.json();
+    }).then((0, _createBins2.default)(layout)).then(cacheBins(id)).then((0, _drawPlayer2.default)(layout, binCache["@@LEAGUE"])).then(attachSvg);
+  });
+}
+
+setupButtonHandler();
+
+global.onunhandledrejection = function (err) {
+  if (err) throw err;
+  throw new Error("Mysterious error in promise");
+};
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./create-bins":6,"./create-layout":7,"./draw-league":8,"./draw-player":9,"ramda":3}],12:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = range;
+function range(arr) {
+  var min = Number.POSITIVE_INFINITY;
+  var max = Number.NEGATIVE_INFINITY;
+  var len = arr.length;
+  var i = 0;
+  var e;
+
+  for (; i < len; i++) {
+    e = arr[i];
+    if (e < min) min = e;
+    if (e > max) max = e;
+  }
+
+  return [min, max];
+}
+
+},{}]},{},[11]);

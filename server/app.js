@@ -1,5 +1,3 @@
-Error.stackTraceLimit = Infinity;
-
 var express = require("express");
 var path = require("path");
 var logger = require("morgan");
@@ -8,19 +6,30 @@ var bodyParser = require("body-parser");
 
 var app = module.exports = express();
 
+var findShots = require("./find-shots");
+var browserifyMiddleware = require("./browserify-middleware");
+
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + "/public/favicon.ico"));
 app.use(logger("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
-app.use(express.static(__dirname + "/public"));
 
-app.use("/station/:stn", require("./server/departure"));
-app.use("/nearest", require("./server/nearest"));
+app.use(browserifyMiddleware);
+
+app.use(express.static(__dirname + "/public", {maxAge: 0}));
+
+app.use("/shots/:id", findShotResource);
+app.use("/shots", findShotResource);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+
+function findShotResource (req, res) {
+  res.json(findShots(req.params.id));
+}
 
 function notFoundHandler (req, res, next) {
   var err = new Error("Not Found");
