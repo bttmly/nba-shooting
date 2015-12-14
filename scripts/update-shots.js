@@ -15,6 +15,9 @@ var ND_JSON_FILE = path.join(DATA_DIR, "shots.ndjson");
 
 var teams = nba.teams
 
+// change this if desired
+var options = {season: "2015-16"};
+
 function leagueShots () {
 
   try {
@@ -25,6 +28,7 @@ function leagueShots () {
   const teamToShots = R.pipe(
     R.prop("teamId"),
     R.objOf("teamId"),
+    R.merge(options),
     nba.stats.shots
   );
 
