@@ -1,6 +1,7 @@
 var fs = require("fs");
 var path = require("path");
 
+var rimraf = require("rimraf");
 var nba = require("nba").usePromises();
 var R = require("ramda");
 
@@ -14,18 +15,12 @@ var ND_JSON_FILE = path.join(DATA_DIR, "shots.ndjson");
 
 var teams = nba.teams
 
-function attempt (f) {
-  var args = [].slice.call(arguments, 1);
-  try {
-    f.apply(args);
-  } catch (e) {};
-}
-
 function leagueShots () {
 
-  attempt(fs.mkdirSync, DATA_DIR);
-  attempt(fs.unlinkSync, JSON_FILE);
-  attempt(fs.unlinkSync, ND_JSON_FILE); 
+  try {
+    rimraf.sync(DATA_DIR);
+  } catch (e) {}
+  fs.mkdirSync(DATA_DIR);
 
   const teamToShots = R.pipe(
     R.prop("teamId"),
@@ -40,8 +35,9 @@ function leagueShots () {
       fs.writeFileSync(JSON_FILE, JSON.stringify(data, null, 2));
       return data;
     })
+    .then(data => (console.log("COUNT", data.length), data))
     .then(R.map(function (s) { fs.appendFileSync(ND_JSON_FILE, JSON.stringify(s) + "\n") }))
     .catch(panic);
 }
 
-module.exports = leagueShots;
+leagueShots();

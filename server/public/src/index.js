@@ -45,7 +45,7 @@ function setupButtonHandler () {
   button.addEventListener("click", function () {
     disposeSvg();
     const id = input.value;
-    fetch(`/shots/${id}`)
+    fetch(`/streaming_shots/${id}`)
       .then(resp => resp.json())
       .then(createBins(layout))
       .then(cacheBins(id))
@@ -58,6 +58,9 @@ function setupButtonHandler () {
 setupButtonHandler();
 
 global.onunhandledrejection = function (err) {
-  if (err) throw err;
+  if (err) {
+    console.log(err.stack);
+    throw err;
+  }
   throw new Error("Mysterious error in promise");
 }

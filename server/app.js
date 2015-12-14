@@ -6,8 +6,8 @@ var bodyParser = require("body-parser");
 
 var app = module.exports = express();
 
-var findShots = require("./find-shots");
-var browserifyMiddleware = require("./browserify-middleware");
+var shots = require("./resources/shots");
+var streamingShots = require("./resources/streaming-shots");
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + "/public/favicon.ico"));
@@ -16,22 +16,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 
-app.use(browserifyMiddleware);
-
+app.use(require("./middleware/bundler"));
 app.use(express.static(__dirname + "/public", {maxAge: 0}));
 
-app.use("/shots/:id", findShotResource);
-app.use("/shots", findShotResource);
+app.use("/shots/:id", shots);
+app.use("/shots", shots);
+app.use("/streaming_shots", streamingShots);
+app.use("/streaming_shots/:id", streamingShots);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 
-function findShotResource (req, res) {
-  res.json(findShots(req.params.id));
-}
-
 function notFoundHandler (req, res, next) {
+  console.log("NOT FOUND HANDLER");
   var err = new Error("Not Found");
   err.status = 404;
   next(err);
@@ -39,6 +37,7 @@ function notFoundHandler (req, res, next) {
 
 // Not worried about leaking the stack
 function errorHandler (err, req, res, next) {
+  console.log("ERROR HANDLER", err);
   res.status(err.status || 500);
   res.json({
     message: err.message,
