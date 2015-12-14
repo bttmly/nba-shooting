@@ -1,4 +1,7 @@
+
 import R from "ramda";
+import Promise from "es6-promise";
+import "whatwg-fetch";
 
 import createLayout from "./create-layout";
 import createBins from "./create-bins";

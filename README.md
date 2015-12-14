@@ -13,7 +13,6 @@ Run it (actual server coming soon, will obviate most of this crap)
 - `npm install`
 - `npm run update-shots`
 - `npm start`
-
 - point your browser to `http://localhost:3000`
 
 The client code lives in `server/public`. The server will re-bundle the code (via browserify) each time it is requested.
