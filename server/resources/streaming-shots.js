@@ -16,11 +16,11 @@ function streamingShots (req, res) {
   res.write("[");
   const predicate = id ? R.whereEq({playerId: Number(id)}) : R.T;
 
-  var st = fs.createReadStream(path.join(__dirname, "../data/shots.ndjson"))
+  var st = fs.createReadStream(path.join(__dirname, "../../data/shots.ndjson"))
     .pipe(ndjson.parse())
     .pipe(S.filter(predicate))
 
   S.jsonToResponse(st, res);
 }
 
-module.exports = streamingShotResource
+module.exports = streamingShots

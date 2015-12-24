@@ -1,3 +1,5 @@
+var T = require("through2");
+
 exports.filter = function (f) {
   return T.obj(function (data, enc, next) {
     try {

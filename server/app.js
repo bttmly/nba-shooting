@@ -29,7 +29,6 @@ app.use(errorHandler);
 
 
 function notFoundHandler (req, res, next) {
-  console.log("NOT FOUND HANDLER");
   var err = new Error("Not Found");
   err.status = 404;
   next(err);
@@ -37,7 +36,6 @@ function notFoundHandler (req, res, next) {
 
 // Not worried about leaking the stack
 function errorHandler (err, req, res, next) {
-  console.log("ERROR HANDLER", err);
   res.status(err.status || 500);
   res.json({
     message: err.message,

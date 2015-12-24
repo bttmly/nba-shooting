@@ -7,18 +7,6 @@ import computeBinMetadata from "./compute-bin-metadata";
 
 import {HEX_RADIUS, SPECTRUM, THRESHOLD, WIDTH, HEIGHT} from "./constants";
 
-function indexBins (bins) {
-  return bins.reduce(function (indexed, bin) {
-    indexed[bin.i + "," + bin.j] = bin;
-    return indexed;
-  }, {})
-}
-
-function attachBinMetadata (bin) {
-  bin.metadata = computeBinMetadata(bin);
-  return bin;
-}
-
 export default R.curry(function drawLeague (layout, leagueBins, playerBins) {
   playerBins.map(attachBinMetadata);
   const binMetadata = R.pluck("metadata", playerBins)  // .filter(m => m.count > THRESHOLD);
@@ -80,8 +68,6 @@ export default R.curry(function drawLeague (layout, leagueBins, playerBins) {
 
   // wtf are these...?
   // console.log("misses", misses);
-
-
   global.misses = misses;
   global.indexedPlayerBins = indexBins(playerBins);
   global.indexedLeagueBins = indexedLeagueBins;
@@ -91,4 +77,16 @@ export default R.curry(function drawLeague (layout, leagueBins, playerBins) {
 
 function binPct (bin) {
   return bin.filter(R.prop("made")).length / bin.length;
+}
+
+function indexBins (bins) {
+  return bins.reduce(function (indexed, bin) {
+    indexed[bin.i + "," + bin.j] = bin;
+    return indexed;
+  }, {})
+}
+
+function attachBinMetadata (bin) {
+  bin.metadata = computeBinMetadata(bin);
+  return bin;
 }

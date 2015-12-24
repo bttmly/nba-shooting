@@ -63,6 +63,7 @@
         fill: none;
         stroke: #fff;
         stroke-width: .5px;
+        opacity: .8;
       }
 
       .hexagons > path:hover {
@@ -72,19 +73,30 @@
       #diagram {
         width: 1000px;
         height: 940px;
-        /*background-image: url("/court-trimmed.png");*/
+        background-image: url(http://stats.nba.com/media/img/halfcourt.svg);
         background-size: cover;
-        opacity: .1;
         position: absolute;
-        top: 80px;
       }
+
+      #status {
+        display: inline-block;
+        padding: 1rem;
+      }
+
+      svg {
+        position: relative;
+      }
+
     </style>
 
   </head>
   <body>
-    <p>Disclaimer: player shooting charts don't (really) work yet.</p>
-    <button id="submit-btn">Submit</button>
-    <input id="player-id" value="201939"> <!-- steph curry -->
+    <div>
+      <span id="status">Initializing...</span>
+      <p>Disclaimer: player shooting charts don't (really) work yet.</p>
+      <button id="submit-btn">Submit</button>
+      <input id="player-id" value="201939"> <!-- steph curry -->
+    </div>
     
     <div id="diagram"></div>
     <script src="./bundle.js"></script>

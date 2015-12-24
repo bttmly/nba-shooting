@@ -3,7 +3,7 @@ var fs = require("fs");
 
 var browserify = require("browserify");
 
-var CLIENT_DIR = path.join(__dirname, "/public");
+var CLIENT_DIR = path.join(__dirname, "../public");
 var ENTRY = path.join(CLIENT_DIR, "src/index.js");
 var BUNDLE = path.join(CLIENT_DIR, "bundle.js");
 
